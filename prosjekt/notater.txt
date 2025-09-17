@@ -1,0 +1,11 @@
+preciptation i weather sier hvor mye nedbør per tid i mm
+
+w_fig = px.scatter(
+    merged,
+    x="precipitation",
+    y="free_bikes",
+    color="station",
+    opacity=0.5,
+    title="Free bikes vs nedbør"
+)
+w_fig.show() # sammenheng mellom nedbør og ledige sykler
