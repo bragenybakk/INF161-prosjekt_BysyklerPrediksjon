@@ -8,7 +8,7 @@ Prosjektet er delt i tre hoveddeler, hver med egen frist:
 2. Modellering og prediksjon – **Frist:** 10.10.  
 3. Sammenstilling og deployment – **Frist:** 31.10. 
 
-I tillegg gjennomføres to **obligatoriske** fagfellevurderinger: én etter Del 1 og én etter Del 2. Du vil få tildelt en annen students prosjekt å vurdere, og skal gi konstruktive tilbakemeldinger.  
+I tillegg gjennomføres to **obligatoriske** fagfellevurderinger: én etter Del 1 og én etter Del 2. Du vil få tildelt andre studenters prosjekter å vurdere, og skal gi konstruktive tilbakemeldinger.  
 
 **Viktig:** Alle frister er obligatoriske, men du blir kun karaktervurdert på den endelige innleveringen (**Del 3**). Hensikten er at du gradvis forbedrer prosjektet ditt basert på tilbakemeldinger og økt kunnskap.  
 
