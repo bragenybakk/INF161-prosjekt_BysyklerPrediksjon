@@ -9,3 +9,5 @@ w_fig = px.scatter(
     title="Free bikes vs nedbør"
 )
 w_fig.show() # sammenheng mellom nedbør og ledige sykler
+
+

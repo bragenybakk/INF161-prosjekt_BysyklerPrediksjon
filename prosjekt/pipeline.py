@@ -2,19 +2,26 @@
 # Input: stations.csv, trips.csv, weather.csv
 # Output: model_ready.csv
 
-import numpy as np
 import pandas as pd 
-import matplotlib.pyplot as plt
-import plotly.express as px
-import plotly.graph_objects as go
+from sklearn.neighbors import KNeighborsRegressor
 
-np.random.seed(100)
 
 # LESER DATAEN
-
 s_df = pd.read_csv("raw_data/stations.csv")
 t_df = pd.read_csv("raw_data/trips.csv")
 w_df = pd.read_csv("raw_data/weather.csv")
+
+# FILTRERER BORT PILOTPERIODEN FØR AUGUST 2024
+cutoff_date = "2024-08-01"
+
+# Konverter til datetime OG filtrer samtidig
+s_df['timestamp'] = pd.to_datetime(s_df['timestamp'], utc=True, errors="coerce")
+t_df['started_at'] = pd.to_datetime(t_df['started_at'], utc=True, errors="coerce") 
+w_df['timestamp'] = pd.to_datetime(w_df['timestamp'], utc=True, errors="coerce")
+
+s_df = s_df[s_df['timestamp'] >= cutoff_date]
+t_df = t_df[t_df['started_at'] >= cutoff_date]
+w_df = w_df[w_df['timestamp'] >= cutoff_date]
 
 # Videre prøver jeg å rydde datasettet "stations" slik at den dataen jeg ikke trenger fjernes, og sorterer opp i datasettet
 
@@ -27,9 +34,6 @@ stasjoner = [
 # Filtrerer først, så dropper jeg ubrukte kolonner
 s_df_clean = s_df[s_df["station"].isin(stasjoner)]
 s_df_clean = s_df_clean.drop(columns=["longitude", "latitude", "skipped_updates"])
-
-# Sørger for datetime i UTC
-s_df_clean["timestamp"] = pd.to_datetime(s_df_clean["timestamp"], utc=True, errors="coerce")
 
 # Sorterer og endrer index
 s_sorted  = s_df_clean.sort_values(["station", "timestamp"])
@@ -96,3 +100,48 @@ merged["fb_prev_h"] = merged.groupby("station")["free_bikes"].shift(1)
 merged = merged.sort_values("timestamp").reset_index(drop=True) # Sorterer til slutt all dataen på tid, så den er klar
 
 merged.to_csv("model_ready.csv", index=False)
+
+# DEL 2
+
+# Leser inn den ferdig behandlede dataen, og splitter opp
+# Bruker IKKE train_test_split for å unngå tidslekasjer
+
+data = pd.read_csv("model_ready.csv")
+data_encoded = pd.get_dummies(data, columns=["station"], drop_first=True)
+data_encoded = data_encoded.dropna() # Fjerner NaN rader
+
+target = "fb_next_h" # target verdien
+X_cols = [
+    'free_bikes',     # current state
+    'free_spots',     # current capacity info
+    'trips_in',       # activity indicators  
+    'trips_out',
+    'temperature',    # weather features
+    'precipitation',
+    'wind_speed',
+    'hour',          # temporal features
+    'weekday',
+    'fb_prev_h'      
+]
+station_cols = [col for col in data_encoded.columns if col.startswith('station_')]
+
+X = data_encoded[X_cols + station_cols]
+y = data_encoded[target]
+
+
+n = len(data_encoded)
+train_end = int(n * 0.7)
+val_end = int(n * 0.85)
+
+train_data = data_encoded.iloc[:train_end]
+val_data = data_encoded.iloc[train_end:val_end]
+test_data = data_encoded.iloc[val_end:]
+
+train_X, train_y = train_data[X_cols + station_cols], train_data[target]
+val_X, val_y = val_data[X_cols + station_cols], val_data[target]
+test_X, test_y = test_data[X_cols + station_cols], test_data[target]
+
+# trener modellen min
+
+final_model = KNeighborsRegressor(n_neighbors=20)
+final_model.fit(train_X, train_y)
