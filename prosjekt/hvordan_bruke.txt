@@ -1,0 +1,48 @@
+# Hvordan bruke
+
+Dette prosjektet predikerer antall ledige bysykler per stasjon én time frem i tid.
+
+## Filer som hører til endelig levering
+- `train.py` – trener og lagrer beste modell som `trained_models.pkl`
+- `predict.py` – bruker lagret modell til å lage prediksjoner
+- `raw_data/` – rådata: `stations.csv`, `trips.csv`, `weather.csv`
+
+# train.py
+Jeg ville lage en kode og en pipeline som var veldig gjenbrukbar. Av inspirasjon fra fagfellevurdering valgte jeg derfor å skrive pipelinen min med
+flere funksjoner. Dette var for å sikre god gjenbruk av kode og for å få den enkel å lese. Jeg ville også gjerne ha mest mulig på en plass.
+Om man så skulle ville endre på variabler, fil-stier eller lignende kan man gjøre dette fra linje 205 og ned, etter alle funksjonene.
+
+Om man vil endre eller legge til features kan man gjøre dette create_features funksjonen. Her var jeg inne å endret flere ganger.
+Koden er veldig selvforklarende etter min mening.
+
+train.py lager også en model_ready.csv med klargjort data
+
+# predict.py
+Denne filen bruker den trente modellen til å predikere antall ledige sykler én time frem i tid. Den leser inn rådata,
+finner siste tilgjengelige tidsstempel, og bygger features for neste hele klokketime. Prediksjonen viser både nåværende
+antall sykler og forventet antall for neste time, slik at man enkelt kan se endringen. Koden håndterer automatisk 
+manglende data ved å bruke Last Observation Carried Forward (LOCF), slik at prediksjoner kan gjøres selv om det mangler 
+noen nylige målinger.
+
+
+## Slik kjører du
+
+1) Tren modellen (første gang eller når data endres):
+
+```pwsh
+python train.py
+```
+
+Dette vil lese rådata, lage features, trene flere modeller, velge den beste og lagre den til `trained_model.pkl`.
+
+2) Kjør prediksjon (kan gjentas når som helst etter trening):
+
+```pwsh
+python predict.py
+```
+
+Dette vil:
+- Lese rådata fra `raw_data/`
+- Finne siste tidsstempel i dataene og neste hele time
+- Predikere antall sykler for timen deretter
+- Skrive ut et enkelt tabellformat

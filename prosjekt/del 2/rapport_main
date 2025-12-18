@@ -1,0 +1,102 @@
+# DEL 1
+Rapport Del 1: Datautforskning og dataklargjøring
+Bergen Bysykkel Prognostisering - INF161 H25
+Problemstilling
+Utvikle prognostiseringssystem for antall ledige sykler én time frem i tid ved 9 utvalgte Bergen Bysykkel-stasjoner basert på historiske data om stasjoner, turer og værforhold.
+
+**Fremgangsmåte**
+
+1. Datakildene
+Stations.csv: Tidsstemplede data om free_bikes og free_spots per stasjon (ujevn rapportering hver 10-15 min)
+
+Trips.csv: Individuelle sykkelturer med start/slutt-informasjon som indikerer etterspørsel
+
+Weather.csv: Timebaserte værdata (temperature, precipitation, wind_speed) for Bergen
+
+2. Dataklargjøring
+Tidsperiode-filtrering: Identifiserte stort datahull mellom april-august 2024. Fjernet data før 1. august da april-dataene anses som ustabil testperiode.
+
+Stasjonsdata:
+
+Filtrert til 9 målstasjoner av ~30 totale
+Fjernet irrelevante kolonner (koordinater, skipped_updates)
+Implementert time-resampling med forward-fill for konsistent time-oppløsning
+LOCF-prinsipp brukt da free_bikes endres gradvis
+Turdata:
+
+Aggregert til trips_out (starter) og trips_in (slutter) per stasjon/time
+Opprettet time-gulv for konsistent aggregering
+Fyllt manglende verdier med 0
+Værdata: Resamplet til time-oppløsning med gjennomsnitt, god datakvalitet uten manglende verdier.
+
+3. Feature Engineering
+Target-variabel: fb_next_h (free_bikes shiftet én time frem per stasjon)
+
+Temporal features: hour (0-23) og weekday (0-6) for døgn/ukevariasjon
+
+Lag-feature: fb_prev_h for trend-informasjon
+
+Activity features: trips_out/trips_in som direkte indikatorer på etterspørsel/tilførsel
+
+**Utfordringer**
+
+Datahull: Stor periode med manglende data mellom april-august
+Ujevn rapportering: Stasjonsdata kom med variabel frekvens
+Tidsperiode: Kun 2-3 måneder data etter filtrering
+Resampling: Måtte implementere forward-fill for konsistent struktur
+Resultater
+Datautforskning
+Stasjonsvariasjon: Store forskjeller i kapasitet og bruksmønster mellom stasjoner - modellen må håndtere stasjonsspesifikke mønstre.
+
+Værpåvirkning: Svak korrelasjon mellom nedbør og ledige sykler. Bergen har hyppig men moderat nedbør.
+
+Aktivitetsmønstre: Sterk negativ korrelasjon mellom trips_out og free_bikes - logisk og viktig prediktiv variabel.
+
+**Endelig datasett**
+
+model_ready.csv: ~15,000 observasjoner med 12 features på time-oppløsning per stasjon. Robust datasett med god balanse mellom datakvalitet og informasjonsrikdom.
+
+Identifiserte mønstre gir gode indikasjoner for at maskinlæringsmodeller kan lære prediktive sammenhenger, spesielt trips_out vs free_bikes korrelasjonen og temporal struktur.
+
+# DEL 2
+Nå som dataen er relativt analysert og ferdig behandlet starter jeg med å finne den beste modellen for å predikere ledige sykler neste timen
+
+**Fremgangsmåte med begrunnelse/analyse**
+
+Import av pakker og datainnlesing Jeg starter med å importere nødvendige pakker som pandas, numpy, sklearn-modeller og plotly for visualisering. Leser inn den ferdig behandlede dataen fra "model_ready.csv" som inneholder alle features og target-variabelen fb_next_h.
+
+Dataforbehandling for maskinlæring Target-variabelen (y) er "fb_next_h" - antall ledige sykler neste time. Features inkluderer nåværende tilstand (free_bikes, free_spots), aktivitetsindikatorer (trips_in, trips_out), værdata (temperature, precipitation, wind_speed), og tidsvariabler (hour, weekday, fb_prev_h).
+
+Siden maskinlæringsmodeller kun aksepterer numeriske verdier, bruker jeg One-hot encoding på kategoriske variabler som "station". Dette lager binære kolonner for hver stasjon. Fjerner rader med NaN-verdier for å unngå treningsfeil.
+
+Datasplitting (70/15/15) Deler dataen kronologisk i trenings- (70%), validerings- (15%) og testdatasett (15%). Bruker IKKE sklearn sin train_test_split for å unngå tidslekasje - modellen må ikke kunne "se inn i fremtiden" ved tilfeldig sampling av tidsseriedata.
+
+Baseline-modeller Trener først enkle baseline-modeller med DummyRegressor (mean og median strategi). Dette gir et referansepunkt - alle ML-modeller må prestere bedre enn disse for å være nyttige. Bruker regresjonsmodeller siden target-variabelen er kontinuerlig.
+
+ML-modelltrening og evaluering Trener syv forskjellige regresjonsmodeller:
+
+Linear Regression: Enkel lineær sammenheng
+Random Forest: Ensemble av beslutningstrær
+Gradient Boosting: Sekvensielle trær som lærer av feil
+KNN: Predikerer basert på nærmeste naboer
+SVR: Support Vector Regression med RBF kernel
+Lasso/Ridge: Lineær regresjon med regularisering
+Evaluerer hver modell mot valideringsdataen og lagrer RMSE-resultater i dictionary for sammenligning.
+
+Overfitting-analyse Sammenligner train RMSE vs validation RMSE for å identifisere overfitting. Modeller med stor forskjell (Val >> Train) overfitter, mens små forskjeller indikerer god generalisering. KNN viser seg å ha best balanse mellom ytelse og generalisering.
+
+Hyperparameter-tuning Optimaliserer KNN ved å teste forskjellige n_neighbors verdier (1-30). Analyserer trade-off mellom overfitting (lav n) og underfitting (høy n). Finner at n=20 gir beste validation RMSE med akseptabel underfitting.
+
+Final evaluering Tester den optimaliserte KNN-modellen (n=20) på det uberørte testdatasettet for å få et urealistisk estimat av modellens ytelse på nye data.
+
+**Utfordringer**
+
+Tidslekasje: Siden dataen er sortert kronologisk kunne jeg ikke bruke train_test_split, da den tar tilfeldige deler av dataen. Dette ville ført til at modellen kunne "sett inn i fremtiden" og gitt urealistisk gode resultater. Måtte derfor dele dataen manuelt på kronologisk måte.
+
+NaN-verdier: Fikk feilmelding ved trening av LinearRegression siden den ikke håndterer NaN-verdier. Oppdaget at de første 17 radene inneholder NaN i fb_prev_h kolonnen, noe som gir mening siden "forrige times" verdi ikke eksisterer for første observasjon per stasjon.
+
+Kategoriske variabler: Stasjonsnavnene måtte konverteres til numerisk format via One-hot encoding, noe som økte antall features betydelig.
+
+**Resultater**
+
+KNN med n_neighbors=20 ble valgt som final modell med en test RMSE på ~1.1, som betyr modellen i gjennomsnitt tar feil med ±1.1 sykler - en meget god prestasjon for sykkelprediksjon.
