@@ -29,7 +29,7 @@ Rådataene ligger i `raw_data/` og består av tre CSV-filer:
 | `trips.csv` | Individuelle turer med start-/sluttstasjon og tidspunkt |
 | `weather.csv` | Værdata med temperatur, nedbør og vindstyrke |
 
-> **Merk:** `trips.csv` er ca. 155 MB og er ikke inkludert i repoet. Filen må legges i `raw_data/` manuelt før kjøring.
+> **Merk:** `trips.csv` (~155 MB) spores via [Git LFS](https://git-lfs.github.com). Sørg for at Git LFS er installert (`git lfs install`) før du kloner repoet, slik at filen lastes ned automatisk.
 
 ## Features
 
@@ -52,9 +52,12 @@ Den beste modellen velges basert på RMSE på valideringssettet og lagres til `t
 
 ## Installasjon
 
-**Krav:** Python 3.8+ med følgende pakker:
+**Krav:** Python 3.8+ og [Git LFS](https://git-lfs.github.com) for nedlasting av store datafiler.
 
 ```bash
+git lfs install
+git clone https://github.com/bragenybakk/INF161-prosjekt_BysyklerPrediksjon.git
+cd INF161-prosjekt_BysyklerPrediksjon/prosjekt
 pip install numpy pandas scikit-learn
 ```
 
@@ -99,7 +102,7 @@ Torgallmenningen                       12                10
 prosjekt/
 ├── raw_data/
 │   ├── stations.csv
-│   ├── trips.csv          # Ikke inkludert i repo (> 100 MB)
+│   ├── trips.csv          # Spores via Git LFS (~155 MB)
 │   └── weather.csv
 ├── train.py               # Trening og modellvalg
 ├── predict.py             # Prediksjon med trent modell
