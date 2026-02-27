@@ -1,0 +1,1 @@
+prosjekt/raw_data/trips.csv filter=lfs diff=lfs merge=lfs -text
